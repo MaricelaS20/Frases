@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Frases de Autores</title>
+  <!-- Incluir Bootstrap CSS desde CDN -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Incluir Vue.js desde el CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3"></script>
+  <style>
+    /* Mis estilos */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    .list-item {
+      background: linear-gradient(135deg, #d8b9d8, #ecb8d4);
+      margin: 15px 0;
+      padding: 25px;
+      border-radius: 10px;
+      box-shadow: 0 4px 6px rgba(75, 70, 70, 0.1);
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .list-item:hover {
+      transform: translateY(-5px);
+    }
+
+    .author {
+      font-weight: bold;
+      margin-top: 15px;
+      text-align: right;
+      color: #8e68a8;
+    }
+
+    .modal-content {
+      background: #FF00FF;
+      border-radius: 15px;
+      border: none;
+      padding: 20px;
+    }
+
+    .modal-header {
+      border-bottom: none;
+    }
+
+    .btn {
+      border-radius: 5px;
+      transition: background 0.3s ease;
+    }
+
+    /* Estilos para los botones de color cian */
+    .btn-cyan {
+      background-color: cyan;
+      border-color: cyan;
+      color: black; /* Texto negro para los botones cian */
+    }
+
+    .btn-cyan:hover {
+      background-color: #00b7eb; /* Un cian más oscuro al hacer hover */
+      border-color: #00b7eb;
+    }
+
+    /* Estilo para el botón "Añadir un pensamiento" en color fucsia */
+    .btn-fuchsia {
+      background-color: #D21F6D; /* Fucsia */
+      border-color: #D21F6D;
+      color: white;
+    }
+
+    .btn-fuchsia:hover {
+      background-color: #B91E5F; /* Un fucsia más oscuro al hacer hover */
+      border-color: #B91E5F;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="container">
+    <h2>Frases de Autores</h2>
+    <button @click="mostrarModalAgregar" class="btn btn-fuchsia mb-3">Añadir un pensamiento</button>
+
+    <ul class="list-unstyled">
+      <li v-for="(frase, indice) in frases" :key="indice" class="list-item">
+        "{{ frase.texto }}"
+        <div class="author">- {{ frase.autor }}</div>
+        <button @click="abrirModalEditar(indice)" class="btn btn-sm mt-2 btn-cyan">Editar</button>
+        <button @click="eliminarFrase(indice)" class="btn btn-cyan btn-sm mt-2">Eliminar</button>
+      </li>
+    </ul>
+
+    <!-- Modal para añadir una nueva frase -->
+    <div class="modal fade" id="modalAgregar" tabindex="-1" aria-labelledby="modalAgregarEtiqueta" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalAgregarEtiqueta">Añadir Frase</h5>
+            <button type="button" class="btn-close" @click="cerrarModalAgregar" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <input v-model="nuevaFrase.texto" class="form-control" placeholder="Nueva frase" />
+            </div>
+            <div class="mb-3">
+              <input v-model="nuevaFrase.autor" class="form-control" placeholder="Nuevo autor" />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" @click="cerrarModalAgregar">Cancelar</button>
+            <button type="button" class="btn btn-primary" @click="agregarFrase">Añadir</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal para editar una frase -->
+    <div class="modal fade" id="modalEditar" tabindex="-1" aria-labelledby="modalEditarEtiqueta" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalEditarEtiqueta">Editar Frase</h5>
+            <button type="button" class="btn-close" @click="cerrarModalEditar" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <input v-model="fraseEditar.texto" class="form-control" placeholder="Editar frase" />
+            </div>
+            <div class="mb-3">
+              <input v-model="fraseEditar.autor" class="form-control" placeholder="Editar autor" />
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-primary" @click="cerrarModalEditar">Cancelar</button>
+            <button type="button" class="btn btn-primary" @click="guardarEdicion">Guardar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Alertas de Bootstrap -->
+    <div v-if="mensajeAlerta" class="alert alert-dismissible fade show" :class="claseAlerta" role="alert">
+      {{ mensajeAlerta }}
+      <button type="button" class="btn-close" @click="mensajeAlerta = ''"></button>
+    </div>
+  </div>
+
+  <!-- Incluir Bootstrap JS y dependencias desde CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    const app = Vue.createApp({
+      data() {
+        return {
+          frases: [
+            { texto: "La herida es el lugar por donde entra la luz..", autor: "Rumi (Jalal ad-Din Rumi)" },
+            { texto: "Sé feliz por este momento. Este momento es tu vida.", autor: "Omar Khayyam" },
+            { texto: "El alma no tiene secreto que el comportamiento no revele", autor: "Hafez (Khwajeh Shams al-Din Muhammad Hafez-e Shirazi)" },
+            { texto: "No lastimes a otros con lo que te causa dolor a ti mismo.", autor: "Saadi de Shiraz" },
+          ],
+          indiceEdicion: null,
+          fraseEditar: {
+            texto: '',
+            autor: ''
+          },
+          nuevaFrase: {
+            texto: '',
+            autor: ''
+          },
+          mensajeAlerta: '',
+          claseAlerta: ''
+        };
+      },
+      methods: {
+        abrirModalEditar(indice) {
+          this.indiceEdicion = indice;
+          this.fraseEditar = { ...this.frases[indice] };
+          this.$nextTick(() => {
+            const modal = new bootstrap.Modal(document.getElementById('modalEditar'));
+            modal.show();
+          });
+        },
+        mostrarModalAgregar() {
+          this.nuevaFrase = { texto: '', autor: '' }; // Asegurar que los campos estén vacíos
+          this.$nextTick(() => {
+            const modal = new bootstrap.Modal(document.getElementById('modalAgregar'));
+            modal.show();
+          });
+        },
+        cerrarModalAgregar() {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('modalAgregar'));
+          modal.hide();
+        },
+        cerrarModalEditar() {
+          const modal = bootstrap.Modal.getInstance(document.getElementById('modalEditar'));
+          modal.hide();
+        },
+        agregarFrase() {
+          if (this.nuevaFrase.texto.trim() === '' || this.nuevaFrase.autor.trim() === '') {
+            this.mensajeAlerta = 'Los campos de frase y autor no pueden estar vacíos.';
+            this.claseAlerta = 'alert-warning';
+            return;
+          }
+          this.frases.push({ ...this.nuevaFrase });
+          this.nuevaFrase = { texto: '', autor: '' };
+          this.cerrarModalAgregar(); // Ocultar modal al agregar
+          this.mensajeAlerta = 'Frase añadida co rrectamente.';
+          this.claseAlerta = 'alert-success';
+        },
+        guardarEdicion() {
+          if (this.fraseEditar.texto.trim() === '' || this.fraseEditar.autor.trim() === '') {
+            this.mensajeAlerta = 'Los campos de frase y autor no pueden estar vacíos.';
+            this.claseAlerta = 'alert-warning';
+            return;
+          }
+          this.frases[this.indiceEdicion] = { ...this.fraseEditar };
+          this.indiceEdicion = null;
+          this.fraseEditar = { texto: '', autor: '' };
+          this.cerrarModalEditar(); // Ocultar modal al guardar
+          this.mensajeAlerta = 'Frase editada correctamente.';
+          this.claseAlerta = 'alert-success';
+        },
+        eliminarFrase(indice) {
+          if (confirm('¿Estás seguro de que quieres eliminar esta frase?')) {
+            this.frases.splice(indice, 1);
+            this.mensajeAlerta = 'Frase eliminada correctamente.';
+            this.claseAlerta = 'alert-success';
+          }
+        }
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
+
